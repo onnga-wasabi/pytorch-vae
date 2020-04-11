@@ -1,0 +1,10 @@
+---
+name: vae
+experiment:
+  epoch: 5 
+  batch_size: 1024 
+  learing_rate: 0.001
+  updater: vae 
+
+model:
+  network: vae 
