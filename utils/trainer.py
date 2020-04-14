@@ -22,41 +22,43 @@ class BaseTrainer(object):
 
     def __init__(
             self,
+            config: Config,
             network: nn.Module,
             data_loader: torch.utils.data.DataLoader,
-            writer: SummaryWriter,
             log_dir: str,
-            config: Config,
             val_data_loader: torch.utils.data.DataLoader = None,
     ):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.device_count() > 1:
-            network = nn.DataParallel(network)
-        self.network = network.to(device)
+        self.config = config
         self.data_loader = data_loader
         self.data_iter = iter(self.data_loader)
-        self.device = device
-        self.writer = writer
         self.log_dir = log_dir
-        self.config = config
+        self.writer = SummaryWriter(log_dir=self.log_dir)
+
+        self.results = {'train': []}
 
         if val_data_loader:
             self.val_data_loader = val_data_loader
             self.val_data_iter = iter(self.val_data_loader)
+            self.results['val'] = []
 
-        self.result = {'name': self.log_dir, 'train_scores': [], 'val_scores': []}
         self.state = State(
             epoch=0,
             iteration=0,
             epoch_pbar=tqdm(total=self.config.experiment.epoch, leave=False, ncols=50),
             iteration_pbar=tqdm(total=len(self.data_iter), leave=False, ncols=150),
         )
+
+        self.device_setup(network)
         self.optimizer_setup()
         self.extra_setup()
 
-    def optimizer_setup(self):
-        pass
-        # raise NotImplementedError
+    def device_setup(self, network):
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = device
+
+        if torch.cuda.device_count() > 1:
+            network = nn.DataParallel(network)
+        self.network = network.to(self.device)
 
     def extra_setup(self):
         pass
@@ -103,6 +105,10 @@ class BaseTrainer(object):
         for k, v in computed['log'].items():
             self.writer.add_scalar(f'Train/{k}', v, self.state.iteration)
 
+        computed['log']['iteration'] = self.state.iteration
+        computed['log']['epoch'] = self.state.epoch
+        self.results['train'].append(computed['log'])
+
     def update_end(self, results):
         pass
 
@@ -121,9 +127,14 @@ class BaseTrainer(object):
         return self.compute(batch)
 
     def evaluate_end(self, results):
+        logs = {}
         for k in results[0]['log'].keys():
             metric = np.mean([r['log'][k] for r in results])
+            logs[k] = metric
             self.writer.add_scalar(f'Validation/{k}', metric, self.state.epoch)
+
+        logs['epoch'] = self.state.epoch
+        self.results['val'].append(logs)
 
     def new_epoch(self):
         self.epoch_end()
@@ -135,9 +146,14 @@ class BaseTrainer(object):
         del(self.data_iter)
         self.data_iter = iter(self.data_loader)
 
+        with open(f'{self.log_dir}/log.json', 'w') as wf:
+            json.dump(self.results['train'], wf, indent=2)
+
         if self.val_data_iter:
             del(self.val_data_iter)
             self.val_data_iter = iter(self.val_data_loader)
+            with open(f'{self.log_dir}/val_log.json', 'w') as wf:
+                json.dump(self.results['val'], wf, indent=2)
 
     def epoch_end(self):
         """
@@ -146,10 +162,12 @@ class BaseTrainer(object):
         pass
 
     def fitting_end(self):
+        self.writer.close()
         self.state.epoch_pbar.close()
-        with open(f'{self.log_dir}/result.json', 'w') as wf:
-            json.dump(self.result, wf, indent=2)
         self.save()
 
     def compute(self, batch):
+        raise NotImplementedError
+
+    def optimizer_setup(self):
         raise NotImplementedError
