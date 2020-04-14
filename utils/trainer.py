@@ -30,7 +30,7 @@ class BaseTrainer(object):
             val_data_loader: torch.utils.data.DataLoader = None,
     ):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() > 1:
+        if torch.cuda.device_count() > 1:
             network = nn.DataParallel(network)
         self.network = network.to(device)
         self.data_loader = data_loader
