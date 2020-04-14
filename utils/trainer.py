@@ -22,16 +22,16 @@ class BaseTrainer(object):
 
     def __init__(
             self,
-            optimizer: torch.optim.Optimizer,
             network: nn.Module,
             data_loader: torch.utils.data.DataLoader,
-            device: str,
             writer: SummaryWriter,
             log_dir: str,
             config: Config,
             val_data_loader: torch.utils.data.DataLoader = None,
     ):
-        self.optimizer = optimizer
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() > 1:
+            network = nn.DataParallel(network)
         self.network = network.to(device)
         self.data_loader = data_loader
         self.data_iter = iter(self.data_loader)
@@ -44,14 +44,19 @@ class BaseTrainer(object):
             self.val_data_loader = val_data_loader
             self.val_data_iter = iter(self.val_data_loader)
 
-        # self.result = {'name': self.log_dir, 'train_scores': [], 'val_scores': []}
-        self.extra_setup()
+        self.result = {'name': self.log_dir, 'train_scores': [], 'val_scores': []}
         self.state = State(
             epoch=0,
             iteration=0,
             epoch_pbar=tqdm(total=self.config.experiment.epoch, leave=False, ncols=50),
-            iteration_pbar=tqdm(total=len(self.data_iter), leave=False),
+            iteration_pbar=tqdm(total=len(self.data_iter), leave=False, ncols=150),
         )
+        self.optimizer_setup()
+        self.extra_setup()
+
+    def optimizer_setup(self):
+        pass
+        # raise NotImplementedError
 
     def extra_setup(self):
         pass
@@ -64,18 +69,16 @@ class BaseTrainer(object):
         while self.state.epoch < self.config.experiment.epoch:
             self.update()
 
-            self.network.eval()
-            with torch.no_grad():
-                if self.val_data_loader:
+            # evalation
+            if self.val_data_loader:
+                self.network.eval()
+                with torch.no_grad():
                     self.evaluate()
-                self.new_epoch()
-            self.network.train()
+                self.network.train()
 
-        self.state.epoch_pbar.close()
-        with open(f'{self.log_dir}/result.json', 'w') as wf:
-            json.dump(self.result, wf, indent=2)
+            self.new_epoch()
 
-        self.save()
+        self.fitting_end()
 
     def update(self):
         results = []
@@ -127,7 +130,7 @@ class BaseTrainer(object):
         self.state.epoch += 1
         self.state.epoch_pbar.update(1)
         self.state.iteration_pbar.close()
-        self.state.iteration_pbar = tqdm(total=len(self.data_iter), leave=False)
+        self.state.iteration_pbar = tqdm(total=len(self.data_iter), leave=False, ncols=150)
 
         del(self.data_iter)
         self.data_iter = iter(self.data_loader)
@@ -141,6 +144,12 @@ class BaseTrainer(object):
         画像とかをhogehogeするなかここかな
         """
         pass
+
+    def fitting_end(self):
+        self.state.epoch_pbar.close()
+        with open(f'{self.log_dir}/result.json', 'w') as wf:
+            json.dump(self.result, wf, indent=2)
+        self.save()
 
     def compute(self, batch):
         raise NotImplementedError

@@ -25,6 +25,9 @@ class VAETrainer(BaseTrainer):
             }
         }
 
+    def optimizer_setup(self):
+        self.optimizer = torch.optim.Adam(self.network.parameters(), lr=self.config.experiment.learing_rate)
+
     def extra_setup(self):
         for x, _ in self.val_data_loader:
             self.visualize_val_data = x[:16]

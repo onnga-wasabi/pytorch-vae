@@ -14,7 +14,7 @@ from utils.config import Config, create_config
 def check_assertions(cfg: Config) -> None:
     assert cfg.model.network in Networks.keys()
     assert cfg.experiment.updater in Trainers.keys()
-    assert cfg.name not in os.listdir('./runs')
+    # assert cfg.name not in os.listdir('./runs')
 
 
 def main():
@@ -35,12 +35,9 @@ def main():
         datasets.MNIST('data', train=False, transform=transforms.ToTensor()),
         batch_size=cfg.experiment.batch_size, shuffle=False)
     network = Networks[cfg.model.network]()
-    optimizer: optim.Adam = optim.Adam(network.parameters(), lr=cfg.experiment.learing_rate)
     trainer = Trainers[cfg.experiment.updater](
-        optimizer,
         network,
         train_loader,
-        'cuda:0',
         writer,
         experiment_dir,
         cfg,
