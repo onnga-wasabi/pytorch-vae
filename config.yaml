@@ -1,10 +1,11 @@
 ---
-name: vae
+name: vae-mse-weight-64
 experiment:
-  epoch: 5 
-  batch_size: 1024 
-  learing_rate: 0.001
-  updater: vae 
-
+  epoch: 30
+  batch_size: 64 
+  learing_rate: 0.005
+  updater: vae
 model:
-  network: vae 
+  network: vae
+  latent_dim: 20
+  initialization:

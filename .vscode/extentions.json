@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-python.vscode-pylance",
+    "bungcip.better-toml",
+    "bodil.prettier-toml",
+    "eamodio.gitlens",
+    "waderyan.gitblame",
+    "mhutchie.git-graph",
+  ]
+}

@@ -4,13 +4,14 @@ import shutil
 import torch
 from torchvision import datasets, transforms
 
-from networks import Networks
-from trainers import Trainers
-from utils.config import Config, create_config
+from modules.networks import Networks
+from modules.trainers import Trainers
+from modules.base.config import Config, create_config
 
-LOG_DIR = '.runs'
+LOG_DIR = 'runs'
 DATA_DIR = 'data'
 CONFIG_NAME = 'config.yaml'
+WANDB_PROJECT = 'pytroch-vae'
 
 
 def check_assertions(cfg: Config) -> None:
@@ -24,16 +25,20 @@ def main():
     check_assertions(cfg)
 
     experiment_dir = f'{LOG_DIR}/{cfg.name}'
+    os.makedirs(experiment_dir, exist_ok=True)
     shutil.copy(CONFIG_NAME, f'{experiment_dir}/{CONFIG_NAME}')
 
     # Model
-    network = Networks[cfg.model.network]()
+    network = Networks[cfg.model.network](cfg)
 
     # Dataset
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST(DATA_DIR, train=True, download=True,
                        transform=transforms.ToTensor()),
-        batch_size=cfg.experiment.batch_size, shuffle=True)
+        batch_size=cfg.experiment.batch_size,
+        shuffle=True,
+        drop_last=True,
+    )
 
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST(DATA_DIR, train=False, transform=transforms.ToTensor()),
@@ -45,6 +50,7 @@ def main():
         train_loader,
         experiment_dir,
         test_loader,
+        # WANDB_PROJECT,
     )
 
     # Learning
