@@ -8,7 +8,7 @@ from modules.networks import Networks
 from modules.trainers import Trainers
 from modules.base.config import Config, create_config
 
-LOG_DIR = 'runs'
+LOG_DIR = 'test'
 DATA_DIR = 'data'
 CONFIG_NAME = 'config.yaml'
 WANDB_PROJECT = 'pytroch-vae'

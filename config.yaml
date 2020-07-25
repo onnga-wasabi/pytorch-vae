@@ -1,8 +1,8 @@
 ---
-name: vae-mse-weight-64
+name: test-vae-mse-1
 experiment:
-  epoch: 30
-  batch_size: 64 
+  epoch: 1
+  batch_size: 64
   learing_rate: 0.005
   updater: vae
 model:
