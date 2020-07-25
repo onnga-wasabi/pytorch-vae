@@ -50,7 +50,7 @@ def main():
         train_loader,
         experiment_dir,
         test_loader,
-        # WANDB_PROJECT,
+        WANDB_PROJECT,
     )
 
     # Learning
