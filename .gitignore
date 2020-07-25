@@ -134,3 +134,4 @@ poetry.lock
 wandb/*
 outputs/*
 test/*
+*.png
